@@ -1697,10 +1697,12 @@ export default function CommandBar({ early = null } = {}) {
   const selectSuggestion = (item) => {
     setSuggestions([]); setSuggestIdx(-1); setShowRecent(false)
     switch (item.type) {
+      // The definition, where the reader is: it used to switch module to show
+      // a 9-second flash (WS2 audit, 26 Nov 2026). The module is named; typing
+      // it goes there.
       case 'glossary':
         setInputValue('')
-        setActiveModule(item.module)
-        flash(`${item.label}: ${item.desc}`, 'text-terminal-text', 9000)
+        flash(`${item.label}: ${item.desc}${item.module ? ` · in ${String(item.module).toUpperCase()}` : ''}`, 'text-terminal-text', 20000)
         return
       case 'view':
         setInputValue('')

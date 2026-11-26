@@ -22,7 +22,7 @@ test('glossary: plain definitions, no advice or forecast, every label term defin
 
 test('every row carries a preview of what Enter opens', () => {
   const g = glossaryRows('trimmed')
-  assert.equal(g[0].category, 'GLOSSARY'); assert.match(g[0].preview.lines.join(' '), /Enter opens/)
+  assert.equal(g[0].category, 'GLOSSARY'); assert.match(g[0].preview.lines.join(' '), /Enter (opens|keeps the definition)/)
   const views = [{ id: 'v1', name: 'Morning rates', timestamp: Date.parse('2026-11-16T00:00:00Z'), state: { activeModule: 'fx', intent: { tab: 'curves' } } }]
   const v = viewRows('morning', views)
   assert.equal(v[0].id, 'v1'); assert.match(v[0].preview.lines[0], /RATES/)
@@ -115,4 +115,33 @@ test('"delete view NAME" removes one saved view by name; the cost-less P&L is no
   const ov = fs.readFileSync('src/modules/dashboard/OverviewSurface.jsx', 'utf8')
   assert.match(ov, /minWidth: 44, minHeight: 44/)
   assert.match(ov, /ms <= -6 \* 3600_000/)
+})
+
+test('search finds company dates (results, AGMs, ex-dividend) by company, ticker or kind, upcoming only, with their source', async () => {
+  const { companyDateRows } = await import('../src/components/layout/globalSearch.js')
+  const actions = [
+    { date: '2026-12-16', type: 'agm', ticker: 'WBC.AX', company: 'Westpac', detail: 'AGM.', source: 'Westpac financial calendar' },
+    { date: '2026-11-05', type: 'dividend', ticker: 'WBC.AX', company: 'Westpac', detail: 'Ex-dividend.', source: 'Westpac financial calendar' },
+    { date: '2026-12-10', type: 'listing', ticker: 'NEW.AX', company: 'Newco', detail: 'Listing.', source: 'ASX' },
+  ]
+  const rows = companyDateRows('westpac', actions, '2026-11-26')
+  assert.deepEqual(rows.map((r) => r.desc), ['Westpac (WBC) · AGM'], 'past dates are left out')
+  assert.match(rows[0].preview.lines[1], /From Westpac financial calendar \(checked /)
+  assert.equal(companyDateRows('wbc', actions, '2026-11-26').length, 1)
+  assert.equal(companyDateRows('agm', actions, '2026-11-26').length, 1)
+  assert.equal(companyDateRows('newco', actions, '2026-11-26').length, 0, 'listings have their own panel')
+})
+
+test('a glossary result shows its definition where the reader is; it does not change module', () => {
+  const bar = fs.readFileSync('src/components/layout/CommandBar.jsx', 'utf8')
+  const g = bar.slice(bar.indexOf("case 'glossary':"), bar.indexOf("case 'view':"))
+  assert.doesNotMatch(g, /setActiveModule/)
+  assert.match(g, /20000/)
+})
+
+test('CUSTOM widgets move with ◀ ▶ (keyboard and touch), through the same checked swap as dragging', () => {
+  const grid = fs.readFileSync('src/modules/dashboard/DashboardGrid.jsx', 'utf8')
+  assert.match(grid, /const swap = \(from, to, dryRun = false\)/)
+  assert.match(grid, /const handleDrop = \(dropIndex\) => \{ swap\(dragRef\.current, dropIndex\)/)
+  assert.match(grid, /aria-label=\{`Move \$\{meta\?\.name \?\? widget\.widgetId\} \$\{word\}`\}/)
 })

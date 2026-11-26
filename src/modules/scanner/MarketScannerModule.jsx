@@ -708,7 +708,7 @@ export default function MarketScannerModule() {
     }
     window.addEventListener('madden:scanner-tab', onTab)
     return () => window.removeEventListener('madden:scanner-tab', onTab)
-  }, [])
+  }, [setActiveTab])
   const [tick, setTick] = useState(0)
   const [lastScanAt, setLastScanAt] = useState(() => Date.now())
   const [scanning, setScanning] = useState(false)

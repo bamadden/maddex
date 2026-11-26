@@ -26,7 +26,7 @@ import { queryHealth, healthSummary, SCREEN_FEEDS } from '../../services/dataHea
 import { useOfficialCheck } from '../../hooks/useOfficialCheck'
 import { getCachedBrief, isAuWeekend, auHour, briefHourLabel } from '../../services/morningBriefService'
 import { AIContentBadge } from '../../components/ui/VerifiedBadge'
-import { readOrder, saveOrder, clearOrder, moveId, OVERVIEW_PANELS, overviewKey } from './overviewOrder'
+import { readOrder, saveOrder, clearOrder, moveId, OVERVIEW_PANELS, overviewKey, readHidden, saveHidden, PANEL_TITLES } from './overviewOrder'
 
 // OVERVIEW — the dashboard's default view: one dense screen, in the order a
 // returning investor reads it. Market state across the top; the RBA and the
@@ -58,6 +58,9 @@ function Panel({ title, badge, action, onAction, className = '', children, id, a
                 className="font-mono px-2 border border-terminal-gold/40 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg disabled:opacity-30 disabled:pointer-events-none"
                 style={{ fontSize: 11, minWidth: 44, minHeight: 44 }}>{glyph}</button>
             ))}
+            <button onClick={() => arrange.hide(arrange.id)} aria-label={`Hide ${title} from the Overview`}
+              className="font-mono px-2 border border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold"
+              style={{ fontSize: 11, minHeight: 44 }}>HIDE</button>
           </span>
         )}
       </header>
@@ -414,9 +417,13 @@ export default function OverviewSurface({ arranging = false, onDoneArranging }) 
     return () => window.removeEventListener('keydown', onKey)
   }, [setDense])
   const [order, setOrder] = useState(() => readOrder())
+  const [hidden, setHidden] = useState(() => readHidden())
   const move = (id, dir) => setOrder((o) => { const next = moveId(o, id, dir); saveOrder(next); return next })
-  const reset = () => { clearOrder(); setOrder([...OVERVIEW_PANELS]) }
-  const arrangeFor = (id) => arranging ? { id, move, first: order[0] === id, last: order[order.length - 1] === id } : undefined
+  const hide = (id) => setHidden((hs) => { const next = [...new Set([...hs, id])]; saveHidden(next); return next })
+  const show = (id) => setHidden((hs) => { const next = hs.filter((x) => x !== id); saveHidden(next); return next })
+  const reset = () => { clearOrder(); setOrder([...OVERVIEW_PANELS]); setHidden([]) }
+  const shown = order.filter((id) => !hidden.includes(id))
+  const arrangeFor = (id) => arranging ? { id, move, hide, first: shown[0] === id, last: shown[shown.length - 1] === id } : undefined
   const h = useHoldings()
   const { data: idx } = useQuery({ queryKey: ['yfBatch', 'indices'], queryFn: () => fetchIndexQuotesUnified(ALL_INDEX_SYMBOLS), staleTime: 60_000, retry: 1 })
   return (
@@ -427,14 +434,25 @@ export default function OverviewSurface({ arranging = false, onDoneArranging }) 
       {arranging && (
         <div className="mb-2 flex flex-wrap items-center gap-3 px-3 py-1.5 border border-terminal-gold/50 font-mono" style={{ fontSize: 11 }} data-arranging>
           <span className="tracking-widest text-terminal-gold">ARRANGING</span>
-          <span className="text-terminal-text">◀ ▶ on each panel moves it. Kept on this device.</span>
-          <button onClick={reset} className="ml-auto tracking-widest text-terminal-text-dim hover:text-terminal-gold">RESET ORDER</button>
+          <span className="text-terminal-text">◀ ▶ moves a panel; HIDE takes it off the Overview. Kept on this device.</span>
+          {hidden.length > 0 && (
+            <span className="flex flex-wrap items-center gap-2" data-hidden-panels>
+              <span className="text-terminal-text-dim">Hidden:</span>
+              {hidden.map((id) => (
+                <button key={id} onClick={() => show(id)} aria-label={`Show ${PANEL_TITLES[id]} on the Overview`}
+                  className="tracking-widest border border-terminal-gold/40 text-terminal-gold px-2 hover:bg-terminal-gold hover:text-terminal-bg" style={{ minHeight: 44 }}>
+                  {PANEL_TITLES[id]} · SHOW
+                </button>
+              ))}
+            </span>
+          )}
+          <button onClick={reset} className="ml-auto tracking-widest text-terminal-text-dim hover:text-terminal-gold">RESET</button>
           <button onClick={onDoneArranging} className="tracking-widest text-terminal-gold hover:underline">DONE</button>
         </div>
       )}
       <div className="grid gap-2 overview-grid">
         <MarketState />
-        {order.map((id) => ({
+        {shown.map((id) => ({
           rba: <RbaMacro key={id} goTo={setActiveModule} arrange={arrangeFor(id)} />,
           holdings: <Holdings key={id} h={h} goTo={setActiveModule} arrange={arrangeFor(id)} />,
           watch: <Watchlist key={id} goTo={setActiveModule} arrange={arrangeFor(id)} />,

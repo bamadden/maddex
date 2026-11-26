@@ -21,6 +21,22 @@ export function saveOrder(order, storage = globalThis.localStorage) {
 
 export function clearOrder(storage = globalThis.localStorage) {
   try { storage.removeItem(KEY) } catch { /* nothing stored */ }
+  try { storage.removeItem(HIDDEN_KEY) } catch { /* nothing stored */ }
+}
+
+// Panels the reader has hidden (WS2 audit, 26 Nov 2026: the Overview could
+// be reordered but nothing could be taken off it). Kept per device; only
+// known panels; RESET shows them all again.
+const HIDDEN_KEY = 'maddex_overview_hidden'
+export const PANEL_TITLES = { rba: 'RBA & MACRO', holdings: 'HOLDINGS', watch: 'WATCHLIST', since: 'SINCE YOUR LAST VISIT', brief: "TODAY'S BRIEF", coming: 'COMING UP' }
+export function normaliseHidden(saved) {
+  return Array.isArray(saved) ? OVERVIEW_PANELS.filter((id) => saved.includes(id)) : []
+}
+export function readHidden(storage = globalThis.localStorage) {
+  try { return normaliseHidden(JSON.parse(storage.getItem(HIDDEN_KEY) ?? 'null')) } catch { return [] }
+}
+export function saveHidden(hidden, storage = globalThis.localStorage) {
+  try { storage.setItem(HIDDEN_KEY, JSON.stringify(normaliseHidden(hidden))) } catch { /* this visit only */ }
 }
 
 // dir: -1 earlier, +1 later. At either end the order is unchanged.

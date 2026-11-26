@@ -40,3 +40,14 @@ test('every Overview panel is focusable and names its action; dense mode is kept
   assert.match(s, /data-ov-keys/)
   assert.match(fs.readFileSync('src/index.css', 'utf8'), /\.overview-dense \.overview-grid/)
 })
+
+test('hidden Overview panels: only known panels are kept, and reset shows them all again', async () => {
+  const { normaliseHidden, readHidden, saveHidden, clearOrder } = await import('../src/modules/dashboard/overviewOrder.js')
+  assert.deepEqual(normaliseHidden(['since', 'nonsense', 'brief', 'since']), ['since', 'brief'])
+  assert.deepEqual(normaliseHidden(null), [])
+  const m = new Map(); const storage = { getItem: (k) => m.get(k) ?? null, setItem: (k, v) => m.set(k, v), removeItem: (k) => m.delete(k) }
+  saveHidden(['coming'], storage)
+  assert.deepEqual(readHidden(storage), ['coming'])
+  clearOrder(storage)
+  assert.deepEqual(readHidden(storage), [])
+})

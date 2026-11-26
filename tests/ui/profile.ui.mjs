@@ -173,10 +173,18 @@ try {
   else fail(`ARRANGE: moved ${moved} · after reload ${kept}`)
   await page.evaluate(() => [...document.querySelectorAll('button')].find((b) => /ARRANGE$/.test(b.textContent.trim()))?.click())
   await page.waitForSelector('[data-arranging]', { timeout: 5000 }).catch(() => {})
-  await page.evaluate(() => [...document.querySelectorAll('[data-arranging] button')].find((b) => /RESET ORDER/.test(b.textContent))?.click())
+  // HIDE takes a panel off the Overview (kept after a reload); SHOW in the
+  // arranging bar brings it back (WS2 audit, 26 Nov 2026).
+  await page.evaluate(() => document.querySelector('[data-arrange="since"] button[aria-label^="Hide"]')?.click())
+  const afterHide = (await panelOrder()).join(',')
+  const hiddenListed = await page.evaluate(() => document.querySelector('[data-hidden-panels]')?.innerText ?? '')
+  !afterHide.includes('ov-since') && /SINCE YOUR LAST VISIT/.test(hiddenListed) ? pass('HIDE takes a panel off the Overview and lists it under Hidden') : fail(`hide: ${afterHide} · listed "${hiddenListed}"`)
+  await page.evaluate(() => [...document.querySelectorAll('[data-hidden-panels] button')][0]?.click())
+  ;(await panelOrder()).includes('ov-since') ? pass('SHOW puts it back') : fail('SHOW did not restore the panel')
+  await page.evaluate(() => [...document.querySelectorAll('[data-arranging] button')].find((b) => /^RESET$/.test(b.textContent.trim()))?.click())
   await page.evaluate(() => [...document.querySelectorAll('[data-arranging] button')].find((b) => /DONE/.test(b.textContent))?.click())
   const reset = (await panelOrder()).join(',')
-  ;/^ov-market,ov-rba,ov-holdings/.test(reset) && !(await page.$('[data-arranging]')) ? pass('RESET ORDER restores the default; DONE leaves arranging') : fail(`after reset: ${reset}`)
+  ;/^ov-market,ov-rba,ov-holdings/.test(reset) && !(await page.$('[data-arranging]')) ? pass('RESET restores the default; DONE leaves arranging') : fail(`after reset: ${reset}`)
 
   sectionLog('Keyboard: skip link and reachable stock rows')
   active = page

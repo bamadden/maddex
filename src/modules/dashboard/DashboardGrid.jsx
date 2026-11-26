@@ -10,7 +10,7 @@ import { PAL } from '../../styles/palette.js'
 // borders on each tile, which double up between neighbours and leave a 2px
 // line down the middle of the grid.
 
-function WidgetCell({ widget, index, editMode, onRemove, drag, columns }) {
+function WidgetCell({ widget, index, editMode, onRemove, onStep, drag, columns }) {
   const meta = dashboardService.getWidget(widget.widgetId)
   const isDragging = drag.dragIndex === index
   const isTarget = drag.overIndex === index && drag.dragIndex !== index
@@ -80,6 +80,15 @@ function WidgetCell({ widget, index, editMode, onRemove, drag, columns }) {
           >
             {meta?.name ?? widget.widgetId}
           </span>
+          {/* Keyboard and touch: move one place earlier or later in reading
+              order (dragging was the only way: WS2 audit, 26 Nov 2026). */}
+          {[[-1, '◀', 'earlier'], [1, '▶', 'later']].map(([dir, glyph, word]) => (
+            <button key={dir} onClick={() => onStep(index, dir)} disabled={!onStep(index, dir, true)}
+              aria-label={`Move ${meta?.name ?? widget.widgetId} ${word}`}
+              className="disabled:opacity-30 disabled:pointer-events-none"
+              style={{ background: 'rgba(6,13,26,0.9)', border: '1px solid rgba(201,168,76,0.4)', borderRadius: 2, color: PAL.gold, minWidth: 32, height: 32, cursor: 'pointer', fontSize: 11 }}
+            >{glyph}</button>
+          ))}
           <button
             onClick={() => onRemove(index)}
             title={`Remove ${meta?.name ?? widget.widgetId}`}
@@ -192,25 +201,32 @@ export default function DashboardGrid({ layout, editMode, onAddAt }) {
   // into a column that does not exist and disappears. When that would happen
   // the widget is shifted left to fit, and if it still cannot fit the swap is
   // refused rather than silently losing a tile.
-  const handleDrop = (dropIndex) => {
-    const from = dragRef.current
-    if (from == null || from === dropIndex) return endDrag()
-
+  // dryRun: only report whether the swap can be made.
+  const swap = (from, to, dryRun = false) => {
+    if (from == null || to == null || from === to) return false
     const widgets = [...layout.widgets]
     const a = widgets[from]
-    const b = widgets[dropIndex]
-    if (!a || !b) return endDrag()
+    const b = widgets[to]
+    if (!a || !b) return false
 
     const fit = (w, col) => Math.max(0, Math.min(col, columns - w.w))
     const nextA = { ...a, col: fit(a, b.col), row: b.row }
     const nextB = { ...b, col: fit(b, a.col), row: a.row }
 
-    if (nextA.col + nextA.w > columns || nextB.col + nextB.w > columns) return endDrag()
-
+    if (nextA.col + nextA.w > columns || nextB.col + nextB.w > columns) return false
+    if (dryRun) return true
     widgets[from] = nextA
-    widgets[dropIndex] = nextB
+    widgets[to] = nextB
     dashboardService.save({ ...layout, id: 'custom', widgets })
-    endDrag()
+    return true
+  }
+  const handleDrop = (dropIndex) => { swap(dragRef.current, dropIndex); endDrag() }
+
+  // ◀ ▶: the neighbour in reading order (row, then column).
+  const reading = layout.widgets.map((w, i) => i).sort((i, j) => (layout.widgets[i].row - layout.widgets[j].row) || (layout.widgets[i].col - layout.widgets[j].col))
+  const step = (index, dir, dryRun = false) => {
+    const k = reading.indexOf(index) + dir
+    return k >= 0 && k < reading.length ? swap(index, reading[k], dryRun) : false
   }
 
   const drag = {
@@ -255,6 +271,7 @@ export default function DashboardGrid({ layout, editMode, onAddAt }) {
           index={index}
           editMode={editMode}
           onRemove={(i) => dashboardService.removeWidget(i)}
+          onStep={step}
           drag={drag}
           columns={columns}
         />

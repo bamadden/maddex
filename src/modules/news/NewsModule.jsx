@@ -1406,7 +1406,7 @@ export default function NewsModule() {
 
   const handleCategoryChange = useCallback((cat) => {
     setActiveCategory(cat); saveCategory(cat)
-  }, [])
+  }, [setActiveCategory])
 
   if (isError && allArticles.length === 0) {
     return (
