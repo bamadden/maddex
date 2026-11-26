@@ -15,7 +15,9 @@ function inWindow(now = new Date()) {
   return !['Sat', 'Sun'].includes(parts.weekday) && h >= 6 && h < 10
 }
 
-const PROMPT = 'Give me the morning call. What do I need to know to start today? Cover overnight moves and developments you have been given, today’s scheduled events and what each could do, the rates and AUD backdrop, and the two or three things to watch on the ASX today. Use only figures in your context; where you have no overnight figure, say so rather than estimate.'
+// Describe only (WS2 audit, 26 Nov 2026): it asked what today's events "could
+// do" and for "the two or three things to watch", a forecast and a pick.
+export const PROMPT = 'Give me the morning call: describe the overnight moves and developments you have been given, the events scheduled today (what each one is and its time in Sydney), and the rates and AUD backdrop. Use only figures in your context; where you have no overnight figure, say so rather than estimate. Describe only: no forecast of any market, rate or event outcome, no list of things to watch, and no recommendation.'
 
 export default function MorningCallButton() {
   const [open, setOpen] = useState(() => inWindow())

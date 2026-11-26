@@ -39,9 +39,9 @@ export default function MorningBriefWidget() {
   return (
     <WidgetBody>
       <div className="flex items-center gap-3 flex-shrink-0">
-        {/* MaddenAI's outlook in words; the brief carries no model-made score. */}
+        {/* The tone of the brief's news in words; the brief carries no model-made score. */}
         <div className="min-w-0">
-          <div className="font-mono" style={{ fontSize: 11, color: PAL.muted, letterSpacing: '0.1em' }}>MADDENAI OUTLOOK</div>
+          <div className="font-mono" style={{ fontSize: 11, color: PAL.muted, letterSpacing: '0.1em' }}>TONE OF TODAY'S BRIEF</div>
           <div className="font-mono font-bold truncate mt-0.5" style={{ fontSize: 14, color: outlookColour(brief.scoreLabel), letterSpacing: '0.1em' }}>{brief.scoreLabel ? toneWord(brief.scoreLabel) : '—'}</div>
         </div>
         {time && <span className="ml-auto font-mono flex-shrink-0" style={{ fontSize: 11, color: PAL.muted }}>{time}</span>}

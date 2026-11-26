@@ -26,7 +26,7 @@ export default function ScannerSignalsWidget() {
       .map((r) => { seen.add(r.symbol); return { ...r, type, colour, tab } }))
       .slice(0, 6)
   }, [])
-  if (!rows.length) return <WidgetEmpty action="OPEN SCANNER" onAction={() => goModule('scanner')}>No signals right now</WidgetEmpty>
+  if (!rows.length) return <WidgetEmpty action="OPEN SCANNER" onAction={() => goModule('scanner')}>No scanner matches right now</WidgetEmpty>
   const open = (tab) => { setModuleIntent('scanner', { tab }); goModule('scanner') }
   return (
     <WidgetBody>
@@ -41,7 +41,7 @@ export default function ScannerSignalsWidget() {
           </button>
         ))}
       </div>
-      <span className="font-mono text-[11px] flex-shrink-0" style={{ color: PAL.muted }}>DEMO · scanner signals from simulated prices</span>
+      <span className="font-mono text-[11px] flex-shrink-0" style={{ color: PAL.muted }}>DEMO · scanner matches from simulated prices</span>
     </WidgetBody>
   )
 }

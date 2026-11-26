@@ -115,3 +115,15 @@ test('RBA hero card: the market reading is a sourced, dated reading, not a "high
   assert.match(s, /sourcedPricing = pricing && pricing\.marketSource && pricing\.marketAsOf/)
   assert.match(s, /\{sourcedPricing\.marketSource\}, \{fmtDate\(sourcedPricing\.marketAsOf\)\}/)
 })
+
+// WS2 re-audit, 26 Nov 2026: the Morning Call asked what events "could do"
+// and for "things to watch".
+test('the Morning Call describes: no event outcomes, nothing to watch, no recommendation', async () => {
+  const src = fs.readFileSync('src/modules/dashboard/MorningCallButton.jsx', 'utf8')
+  const prompt = /export const PROMPT = '([^']+)'/.exec(src)[1]
+  const ask = prompt.split('Describe only:')[0] // what it asks for, not what it forbids
+  assert.doesNotMatch(ask, /could do|to watch|likely|expect/i)
+  assert.match(prompt, /Describe only: no forecast/)
+  assert.doesNotMatch(fs.readFileSync('src/modules/dashboard/widgets/MorningBriefWidget.jsx', 'utf8'), /MADDENAI OUTLOOK/)
+  assert.doesNotMatch(fs.readFileSync('src/modules/dashboard/widgets/ScannerSignalsWidget.jsx', 'utf8'), />No signals right now|scanner signals from/)
+})
