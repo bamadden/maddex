@@ -73,13 +73,12 @@ Updated 26 Nov 2026 (WS2 re-audit, `docs/audit/ws2-2026-11-26.md`).
     from the command bar.
   - A view keeps the layout (split or single pane) and the state of the
     Dashboard, Scanner, Screener, Markets, Macro, News, Watchlist, Bonds,
-    Futures, Calculators, ETFs and company pages.
+    Futures, Calculators, ETFs and company pages, the split pane and its divider.
   - `rename view OLD to NEW` renames one, and a save that would drop the
     oldest of ten warns first.
-- **Search breadth: mostly closed.** Search reaches the glossary, saved
-  views, economic-calendar events and Relationships nodes. Earnings and
-  dividend dates are not searchable yet, and choosing an event opens
-  Calendar but not at that event.
+- **Search breadth: closed.** Search reaches the glossary, saved views,
+  economic-calendar events, company dates (results, AGMs, ex-dividend) and
+  Relationships nodes. Choosing an event opens Calendar on that day.
 - **Live Australian prices.** None until a licensed provider is connected
   (a data licence, in the launch checklist Workstream 8 writes).
 

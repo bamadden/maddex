@@ -26,7 +26,7 @@ import { queryHealth, healthSummary, SCREEN_FEEDS } from '../../services/dataHea
 import { useOfficialCheck } from '../../hooks/useOfficialCheck'
 import { getCachedBrief, isAuWeekend, auHour, briefHourLabel } from '../../services/morningBriefService'
 import { AIContentBadge } from '../../components/ui/VerifiedBadge'
-import { readOrder, saveOrder, clearOrder, moveId, OVERVIEW_PANELS, overviewKey, readHidden, saveHidden, PANEL_TITLES } from './overviewOrder'
+import { readOrder, saveOrder, clearOrder, OVERVIEW_PANELS, overviewKey, readHidden, saveHidden, PANEL_TITLES } from './overviewOrder'
 
 // OVERVIEW — the dashboard's default view: one dense screen, in the order a
 // returning investor reads it. Market state across the top; the RBA and the
@@ -275,12 +275,20 @@ function Watchlist({ goTo, arrange }) {
 }
 
 // ── Since your last visit ───────────────────────────────────────────────────
-function SinceLastVisit({ asx200, asx200Cls, portfolioValue, portfolioKey, arrange }) {
+// The visit is tracked by the Overview, not by this panel, so hiding the
+// panel does not stop it (WS2 re-audit L6).
+function useVisit({ asx200, asx200Cls, portfolioValue, portfolioKey }) {
   const [prev] = useState(() => beginVisit())
   const [openedAt] = useState(() => Date.now())
   useEffect(() => { recordVisit({ asx200, asx200Cls, portfolioValue, portfolioKey }) }, [asx200, asx200Cls, portfolioValue, portfolioKey])
-  // Still seen while open, so another tab continues this visit.
-  useEffect(() => { const id = setInterval(() => recordVisit({}), 60_000); return () => clearInterval(id) }, [])
+  // Still seen while open, so another tab continues this visit; only while
+  // the tab is visible (a background tab left open overnight kept the visit
+  // going for ever: WS2 re-audit M6).
+  useEffect(() => { const id = setInterval(() => { if (document.visibilityState === 'visible') recordVisit({}) }, 60_000); return () => clearInterval(id) }, [])
+  return { prev, openedAt }
+}
+
+function SinceLastVisit({ prev, openedAt, asx200, asx200Cls, portfolioValue, portfolioKey, arrange }) {
   const items = useMemo(() => sinceLastVisit(prev, { at: openedAt, asx200, asx200Cls, portfolioValue, portfolioKey }, { constants: VERIFIED_CONSTANTS, alerts: loadAlertHistory(), changes: DATED_CHANGES }), [prev, openedAt, asx200, asx200Cls, portfolioValue, portfolioKey])
   return (
     <Panel id="ov-since" arrange={arrange} title="SINCE YOUR LAST VISIT" badge={prev?.at && <span className="font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>{formatDate(prev.at, { weekday: true, year: false })} {sydneyClock(prev.at).text}</span>}>
@@ -403,7 +411,7 @@ const DENSE_KEY = 'maddex_overview_dense'
 const readDense = () => { try { return localStorage.getItem(DENSE_KEY) === '1' } catch { return false } }
 export default function OverviewSurface({ arranging = false, onDoneArranging }) {
   const { setActiveModule } = useStore()
-  const [dense, setDense] = useIntentState('dashboard', 'dense', readDense)
+  const [dense, setDense] = useIntentState('dashboard', 'dense', readDense, (d) => { try { localStorage.setItem(DENSE_KEY, d ? '1' : '0') } catch { /* this visit only */ } })
   useEffect(() => {
     const onKey = (e) => {
       const handled = overviewKey(e, {
@@ -418,7 +426,18 @@ export default function OverviewSurface({ arranging = false, onDoneArranging }) 
   }, [setDense])
   const [order, setOrder] = useState(() => readOrder())
   const [hidden, setHidden] = useState(() => readHidden())
-  const move = (id, dir) => setOrder((o) => { const next = moveId(o, id, dir); saveOrder(next); return next })
+  // ◀ ▶ step among the VISIBLE panels: swapping with a hidden one changed
+  // nothing on screen (WS2 re-audit M1).
+  const move = (id, dir) => setOrder((o) => {
+    const vis = o.filter((x) => !hidden.includes(x))
+    const other = vis[vis.indexOf(id) + dir]
+    if (!other) return o
+    const next = [...o]
+    next[o.indexOf(id)] = other
+    next[o.indexOf(other)] = id
+    saveOrder(next)
+    return next
+  })
   const hide = (id) => setHidden((hs) => { const next = [...new Set([...hs, id])]; saveHidden(next); return next })
   const show = (id) => setHidden((hs) => { const next = hs.filter((x) => x !== id); saveHidden(next); return next })
   const reset = () => { clearOrder(); setOrder([...OVERVIEW_PANELS]); setHidden([]) }
@@ -426,6 +445,13 @@ export default function OverviewSurface({ arranging = false, onDoneArranging }) 
   const arrangeFor = (id) => arranging ? { id, move, hide, first: shown[0] === id, last: shown[shown.length - 1] === id } : undefined
   const h = useHoldings()
   const { data: idx } = useQuery({ queryKey: ['yfBatch', 'indices'], queryFn: () => fetchIndexQuotesUnified(ALL_INDEX_SYMBOLS), staleTime: 60_000, retry: 1 })
+  const visitFigures = {
+    asx200: idx?.data?.['^AXJO']?.last ?? null,
+    asx200Cls: idx ? classOfResult(idx, { demo: USING_MOCK_DATA }) : null,
+    portfolioValue: h.stats?.value ?? null,
+    portfolioKey: h.stats && h.stats.priced === h.holdings.length ? h.holdings.map((x) => `${x.symbol}:${x.shares}`).sort().join(',') : null,
+  }
+  const visit = useVisit(visitFigures)
   return (
     <div className={`flex-1 min-h-0 overflow-auto p-2${dense ? ' overview-dense' : ''}`} data-dense={dense ? '1' : '0'}>
       <div className="mb-1 text-right font-mono text-terminal-text-dim hidden sm:block" style={{ fontSize: 11 }} data-ov-keys>
@@ -456,8 +482,7 @@ export default function OverviewSurface({ arranging = false, onDoneArranging }) 
           rba: <RbaMacro key={id} goTo={setActiveModule} arrange={arrangeFor(id)} />,
           holdings: <Holdings key={id} h={h} goTo={setActiveModule} arrange={arrangeFor(id)} />,
           watch: <Watchlist key={id} goTo={setActiveModule} arrange={arrangeFor(id)} />,
-          since: <SinceLastVisit key={id} asx200={idx?.data?.['^AXJO']?.last ?? null} asx200Cls={idx ? classOfResult(idx, { demo: USING_MOCK_DATA }) : null}
-            portfolioValue={h.stats?.value ?? null} portfolioKey={h.stats && h.stats.priced === h.holdings.length ? h.holdings.map((x) => `${x.symbol}:${x.shares}`).sort().join(',') : null} arrange={arrangeFor(id)} />,
+          since: <SinceLastVisit key={id} {...visitFigures} prev={visit.prev} openedAt={visit.openedAt} arrange={arrangeFor(id)} />,
           brief: <BriefSummary key={id} goTo={setActiveModule} arrange={arrangeFor(id)} />,
           coming: <ComingUp key={id} goTo={setActiveModule} arrange={arrangeFor(id)} />,
         })[id])}

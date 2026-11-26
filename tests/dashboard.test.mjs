@@ -101,3 +101,19 @@ test('every Dashboard widget that shows data carries the shared badge; the rest 
   assert.doesNotMatch(div, /> \/yr</)
   assert.match(div, /not a forecast of income/)
 })
+
+test('CUSTOM: a swap never puts one widget on top of another (WS2 re-audit H1)', async () => {
+  const { swapPlacement } = await import('../src/modules/dashboard/gridPlacement.js')
+  const W = (id, col, row, w = 1, h = 1) => ({ widgetId: id, col, row, w, h })
+  // The default 3-column layout: row 0 three singles; row 1 a 2-wide index bar and a single.
+  const layout = [W('portfolio', 0, 0), W('score', 1, 0), W('next', 2, 0), W('index', 0, 1, 2), W('watch', 2, 1)]
+  assert.equal(swapPlacement(layout, 2, 3, 3), null, 'index (2 wide) into next\'s slot would cover score')
+  const ok = swapPlacement(layout, 0, 1, 3)
+  assert.deepEqual(ok.slice(0, 2).map((w) => [w.widgetId, w.col, w.row]), [['portfolio', 1, 0], ['score', 0, 0]])
+  assert.equal(swapPlacement(layout, 1, 1, 3), null)
+  const cells = (ws) => ws.flatMap((w) => Array.from({ length: w.w * w.h }, (_, k) => `${w.col + (k % w.w)},${w.row + Math.floor(k / w.w)}`))
+  for (let i = 0; i < layout.length; i++) for (let j = 0; j < layout.length; j++) {
+    const n = swapPlacement(layout, i, j, 3)
+    if (n) assert.equal(new Set(cells(n)).size, cells(n).length, `swap ${i}↔${j} overlaps`)
+  }
+})

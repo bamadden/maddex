@@ -49,7 +49,8 @@ test('saved views keep the module state it exposes, and are saved and found from
   assert.equal(currentIntent('nothing'), null)
   const app = fs.readFileSync('src/App.jsx', 'utf8')
   assert.match(app, /intent: currentIntent\(activeModule\)/)
-  assert.match(app, /if \(state\.activeModule && state\.intent\) sendModuleIntent\(state\.activeModule, state\.intent\)/)
+  assert.match(app, /if \(state\.activeModule && state\.intent\) setModuleIntent\(state\.activeModule, state\.intent\)/)
+  assert.match(app, /setTimeout\(\(\) => sendModuleIntent\(state\.activeModule, state\.intent\), 0\)/)
   assert.match(fs.readFileSync('src/hooks/useModuleIntent.js', 'utf8'), /recordIntentValue\(module, field, value\)/)
   const bar = fs.readFileSync('src/components/layout/CommandBar.jsx', 'utf8')
   assert.match(bar, /\^save \(\?:this \|the \)\?view/)
@@ -91,7 +92,7 @@ test('saved views keep the Dashboard, Scanner, Screener, Markets, Macro, News an
   }
   for (const [f, u] of Object.entries(uses)) assert.ok(fs.readFileSync(f, 'utf8').includes(u), `${f}: ${u}`)
   const app = fs.readFileSync('src/App.jsx', 'utf8')
-  assert.match(app, /\n    layout,\n  \}\), \[activeModule, chatOpen, aiMode, layout\]\)/)
+  assert.match(app, /\n    layout,\n    splitModuleId,\n    splitRatio,\n  \}\), \[activeModule, chatOpen, aiMode, layout, splitModuleId, splitRatio\]\)/)
   assert.match(app, /if \(state\.layout\) setLayout\(state\.layout\)/)
 })
 
@@ -110,7 +111,7 @@ test('saved-view dates are Sydney dates, and the Overview keys stand aside for a
 test('"delete view NAME" removes one saved view by name; the cost-less P&L is not 0.00%', async () => {
   const bar = fs.readFileSync('src/components/layout/CommandBar.jsx', 'utf8')
   assert.match(bar, /kind: 'deleteview'/)
-  assert.match(bar, /case 'deleteview':[\s\S]{0,300}viewStateService\.deleteView\(v\.id\)/)
+  assert.match(bar, /case 'deleteview':[\s\S]{0,800}viewStateService\.deleteView\(v\.id\)/)
   assert.match(fs.readFileSync('src/modules/dashboard/portfolioSnapshot.js', 'utf8'), /pnlPct: cost \? \(\(value - cost\) \/ cost\) \* 100 : null/)
   const ov = fs.readFileSync('src/modules/dashboard/OverviewSurface.jsx', 'utf8')
   assert.match(ov, /minWidth: 44, minHeight: 44/)

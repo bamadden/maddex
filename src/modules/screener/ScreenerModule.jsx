@@ -787,7 +787,7 @@ export default function ScreenerModule() {
   const [view, setView] = useIntentState('screener', 'view', () => {
     try { return localStorage.getItem('maddex_screener_view') === 'cards' ? 'cards' : 'table' }
     catch { return 'table' }
-  })
+  }, (v) => { try { localStorage.setItem('maddex_screener_view', v) } catch { /* quota */ } })
   const setViewPersist = (v) => {
     setView(v)
     try { localStorage.setItem('maddex_screener_view', v) } catch { /* quota */ }

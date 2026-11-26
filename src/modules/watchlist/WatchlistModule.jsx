@@ -520,6 +520,8 @@ export default function WatchlistModule() {
   // means manual order, which is what drag-to-reorder produces.
   const [sortKey, setSortKey] = useIntentState('watchlist', 'sortKey', () => loadSort(Object.keys(SORT_VALUE)).column)
   const [sortDir, setSortDir] = useIntentState('watchlist', 'sortDir', () => loadSort(Object.keys(SORT_VALUE)).direction)
+  // A sort restored from a saved view is kept too (WS2 re-audit L1).
+  useEffect(() => { saveSort(sortKey, sortDir) }, [sortKey, sortDir])
   const [columns, setColumns] = useState(() => loadColumns(DEFAULT_COLUMNS))
   const [colMenuOpen, setColMenuOpen] = useState(false)
   const colMenuRef = useRef(null)

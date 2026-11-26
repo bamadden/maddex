@@ -699,7 +699,9 @@ export default function MarketScannerModule() {
   // arrives — and the event below covers the warm one.
   // The tab is module intent state: a command-bar intent sets it, and saved
   // views keep it (WS2 audit).
-  const [activeTab, setActiveTab] = useIntentState('scanner', 'tab', 'breakouts')
+  const [rawTab, setActiveTab] = useIntentState('scanner', 'tab', 'breakouts')
+  // An unknown tab (an old saved view) falls back rather than showing nothing.
+  const activeTab = TABS.some((t) => t.key === rawTab) ? rawTab : 'breakouts'
 
   useEffect(() => {
     const onTab = (e) => {

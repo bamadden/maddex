@@ -1210,7 +1210,7 @@ export default function NewsModule() {
   const [activeCategory, setActiveCategory] = useIntentState('news', 'category', () => {
     const saved = loadCategory()
     return saved === 'SAVED' || DISPLAY_CATEGORIES.some(c => c.key === saved) ? saved : 'ALL'
-  })
+  }, saveCategory)
   const [searchTerm, setSearchTerm]   = useState('')
   const [sourceFilter, setSourceFilter] = useIntentState('news', 'source', 'ALL')
   const [timeFilter, setTimeFilter]   = useState('ALL')

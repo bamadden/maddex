@@ -1585,6 +1585,9 @@ export default function CommandBar({ early = null } = {}) {
     // than becoming a question for the model. parseNaturalLanguage is the same
     // function the preview line uses — see its comment.
     const nl = parseNaturalLanguage(trimmed)
+    // A pending "this save would drop a view" confirmation lasts only until
+    // the next command (WS2 re-audit L8).
+    if (nl?.kind !== 'saveview') pendingDropRef.current = null
     if (nl) {
       switch (nl.kind) {
         case 'watchlist':
@@ -1642,15 +1645,23 @@ export default function CommandBar({ early = null } = {}) {
           return
         }
         case 'renameview': {
-          const v = viewStateService.findByName(nl.name)
-          if (!v) { flash(`No single saved view matches "${nl.name}". Type "views" to list them.`, 'text-terminal-gold', 4000); return }
-          const r = viewStateService.renameView(v.id, nl.to)
-          flash(r === 'renamed' ? `Renamed "${v.name}" to "${nl.to}".` : r === 'taken' ? `Another saved view is already called "${nl.to}".` : 'That name cannot be used.', r === 'renamed' ? 'text-terminal-green' : 'text-terminal-gold', 3500)
+          // Split at the " to " that leaves an existing view's name on the
+          // left ("go to market to X" renames "go to market"): WS2 re-audit L9.
+          const whole = `${nl.name} to ${nl.to}`
+          const names = viewStateService.getSavedViews().map((x) => x.name.toLowerCase())
+          const cut = [...whole.matchAll(/ (?:to|as) /gi)].map((m) => m.index).find((at) => names.includes(whole.slice(0, at).toLowerCase()))
+          const oldName = cut != null ? whole.slice(0, cut) : nl.name
+          const newName = cut != null ? whole.slice(cut).replace(/^ (?:to|as) /i, '') : nl.to
+          const v = viewStateService.findByName(oldName)
+          if (!v) { flash(`No single saved view matches "${oldName}". Type "views" to list them.`, 'text-terminal-gold', 4000); return }
+          const r = viewStateService.renameView(v.id, newName)
+          flash(r === 'renamed' ? `Renamed "${v.name}" to "${newName}".` : r === 'taken' ? `Another saved view is already called "${newName}".` : 'That name cannot be used.', r === 'renamed' ? 'text-terminal-green' : 'text-terminal-gold', 3500)
           return
         }
         case 'deleteview': {
-          const v = viewStateService.findByName(nl.name)
-          if (!v) { flash(`No single saved view matches "${nl.name}". Type "views" to list them.`, 'text-terminal-gold', 4000); return }
+          // The exact name only: a partial match deleted at once (WS2 re-audit L7).
+          const v = viewStateService.getSavedViews().find((x) => x.name.toLowerCase() === nl.name.toLowerCase())
+          if (!v) { flash(`No saved view is called exactly "${nl.name}". Type "views" to list them.`, 'text-terminal-gold', 4000); return }
           viewStateService.deleteView(v.id)
           flash(`Deleted the saved view "${v.name}" from this device.`, 'text-terminal-green', 3000)
           return

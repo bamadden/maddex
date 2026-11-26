@@ -10,7 +10,7 @@ import { workspaceService } from './services/workspaceService'
 import { WorkspaceRenderer } from './components/layout/WorkspaceRenderer'
 import { shortcutService } from './services/shortcutService'
 import { viewStateService } from './services/viewStateService'
-import { currentIntent, sendModuleIntent } from './services/moduleIntent'
+import { currentIntent, sendModuleIntent, setModuleIntent } from './services/moduleIntent'
 import { StoreProvider, useStore } from './store/useStore'
 import { useAuthStore } from './store/useAuthStore'
 import { fetchNews } from './services/api'
@@ -758,26 +758,44 @@ function Terminal() {
     // The module's own tabs and filters, where it exposes them (WS2).
     intent: currentIntent(activeModule),
     // The screen layout (standard, split, focus, research): a split view
-    // reopened as a single pane (WS2 audit, 26 Nov 2026).
+    // reopened as a single pane (WS2 audit, 26 Nov 2026), and in a split the
+    // second pane and the divider (WS2 re-audit M4).
     layout,
-  }), [activeModule, chatOpen, aiMode, layout])
+    splitModuleId,
+    splitRatio,
+  }), [activeModule, chatOpen, aiMode, layout, splitModuleId, splitRatio])
 
   const applyViewState = useCallback((state) => {
     if (!state) return
+    // Layout and workspace first, then the module: a layout change remounts
+    // the module, which reads the intent left for it; the event a tick later
+    // reaches one that stayed mounted. Sent first, the intent was consumed by
+    // the old mount and the remount opened at defaults (WS2 re-audit M3).
     if (state.workspace) workspaceService.setActive(state.workspace)
-    if (state.activeModule && state.intent) sendModuleIntent(state.activeModule, state.intent)
-    if (state.activeModule) setActiveModule(state.activeModule)
-    if (state.aiPanelMode) setAiMode(state.aiPanelMode)
     if (state.layout) setLayout(state.layout)
+    if (state.splitModuleId) setSplitModuleId(state.splitModuleId)
+    if (typeof state.splitRatio === 'number') setSplitRatio(Math.min(0.8, Math.max(0.2, state.splitRatio)))
+    if (state.activeModule && state.intent) setModuleIntent(state.activeModule, state.intent)
+    if (state.activeModule) setActiveModule(state.activeModule)
+    if (state.activeModule && state.intent) setTimeout(() => sendModuleIntent(state.activeModule, state.intent), 0)
+    if (state.aiPanelMode) setAiMode(state.aiPanelMode)
     setChatOpen(!!state.aiPanelOpen)
   }, [setActiveModule, setAiMode, setChatOpen, setLayout])
 
   const [restorePrompt, setRestorePrompt] = useState(() => !!viewStateService.loadAutosave())
 
+  // Not while "Restore your last session?" is still asking, or RESTORE
+  // would bring back this session; and also when the tab is hidden or closed,
+  // so a short session is kept (WS2 re-audit L11).
   useEffect(() => {
-    const id = setInterval(() => viewStateService.saveAutosave(captureViewState()), 5 * 60_000)
-    return () => clearInterval(id)
-  }, [captureViewState])
+    if (restorePrompt) return undefined
+    const save = () => viewStateService.saveAutosave(captureViewState())
+    const onHide = () => { if (document.visibilityState === 'hidden') save() }
+    const id = setInterval(save, 5 * 60_000)
+    document.addEventListener('visibilitychange', onHide)
+    window.addEventListener('pagehide', save)
+    return () => { clearInterval(id); document.removeEventListener('visibilitychange', onHide); window.removeEventListener('pagehide', save) }
+  }, [captureViewState, restorePrompt])
 
   // WorkspaceSwitcher's "Save current view" / "Load saved view" controls
   // don't have direct access to store state, so they go through events —

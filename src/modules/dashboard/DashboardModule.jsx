@@ -44,7 +44,7 @@ export default function DashboardModule() {
   const layout = dashboardService.getLayout()
 
   // Saved views keep OVERVIEW/CUSTOM (WS2 audit).
-  const [view, setViewState] = useIntentState('dashboard', 'view', readView)
+  const [view, setViewState] = useIntentState('dashboard', 'view', readView, (v) => { try { localStorage.setItem(VIEW_KEY, v) } catch { /* private mode */ } })
   const setView = (v) => { setViewState(v); try { localStorage.setItem(VIEW_KEY, v) } catch { /* private mode */ } }
   const custom = view === 'custom'
   const [arranging, setArranging] = useState(false)

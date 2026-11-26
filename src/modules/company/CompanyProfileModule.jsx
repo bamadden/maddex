@@ -8,7 +8,7 @@ import { COMPANY_FACTS, factsSource } from '../../data/graph/companyFacts'
 import { KEY_FACTS } from '../../data/graph/keyFacts'
 import { edgeAsAt } from '../../data/graph/staleness'
 import { completeness, edgesOf, searchNodes } from '../../services/graphQuery'
-import { takeModuleIntent, peekModuleIntent } from '../../services/moduleIntent'
+import { takeModuleIntent, peekModuleIntent, recordIntentValue } from '../../services/moduleIntent'
 import { MOCK_ASX_STOCKS } from '../../services/mockData'
 import { openInRelationships } from '../../utils/openRelationships'
 import { ConfidenceBadge, StaleBadge, WeightBadge } from '../relationships/RelPanels'
@@ -224,6 +224,8 @@ export default function CompanyProfileModule() {
     return () => window.removeEventListener('madden:module-intent', on)
   }, [])
   useEffect(() => { try { localStorage.setItem(LAST_KEY, id) } catch { /* private mode */ } }, [id])
+  // Kept in saved views (WS2 re-audit M5: the benchmark said so; it was not).
+  useEffect(() => { recordIntentValue('company', 'id', id) }, [id])
 
   const node = GRAPH.byId.get(id)
   const groups = useMemo(() => edgesOf(GRAPH, id), [id])

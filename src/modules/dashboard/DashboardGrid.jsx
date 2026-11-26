@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from 'react'
 import { dashboardService } from '../../services/dashboardService'
 import WidgetContent from './WidgetContent'
+import { swapPlacement } from './gridPlacement'
 import { PAL } from '../../styles/palette.js'
 
 // The grid. Placements come from dashboardService; this file only draws them.
@@ -86,7 +87,7 @@ function WidgetCell({ widget, index, editMode, onRemove, onStep, drag, columns }
             <button key={dir} onClick={() => onStep(index, dir)} disabled={!onStep(index, dir, true)}
               aria-label={`Move ${meta?.name ?? widget.widgetId} ${word}`}
               className="disabled:opacity-30 disabled:pointer-events-none"
-              style={{ background: 'rgba(6,13,26,0.9)', border: '1px solid rgba(201,168,76,0.4)', borderRadius: 2, color: PAL.gold, minWidth: 32, height: 32, cursor: 'pointer', fontSize: 11 }}
+              style={{ background: 'rgba(6,13,26,0.9)', border: '1px solid rgba(201,168,76,0.4)', borderRadius: 2, color: PAL.gold, minWidth: 44, height: 44, cursor: 'pointer', fontSize: 11 }}
             >{glyph}</button>
           ))}
           <button
@@ -95,7 +96,7 @@ function WidgetCell({ widget, index, editMode, onRemove, onStep, drag, columns }
             aria-label={`Remove ${meta?.name ?? widget.widgetId}`}
             style={{
               background: 'rgba(168,50,50,0.85)', border: 'none', borderRadius: 2,
-              color: '#fff', width: 20, height: 20, cursor: 'pointer', fontSize: 11,
+              color: '#fff', width: 44, height: 44, cursor: 'pointer', fontSize: 11,
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}
           >✕</button>
@@ -203,21 +204,9 @@ export default function DashboardGrid({ layout, editMode, onAddAt }) {
   // refused rather than silently losing a tile.
   // dryRun: only report whether the swap can be made.
   const swap = (from, to, dryRun = false) => {
-    if (from == null || to == null || from === to) return false
-    const widgets = [...layout.widgets]
-    const a = widgets[from]
-    const b = widgets[to]
-    if (!a || !b) return false
-
-    const fit = (w, col) => Math.max(0, Math.min(col, columns - w.w))
-    const nextA = { ...a, col: fit(a, b.col), row: b.row }
-    const nextB = { ...b, col: fit(b, a.col), row: a.row }
-
-    if (nextA.col + nextA.w > columns || nextB.col + nextB.w > columns) return false
-    if (dryRun) return true
-    widgets[from] = nextA
-    widgets[to] = nextB
-    dashboardService.save({ ...layout, id: 'custom', widgets })
+    const next = swapPlacement(layout.widgets, from, to, columns)
+    if (!next) return false
+    if (!dryRun) dashboardService.save({ ...layout, id: 'custom', widgets: next })
     return true
   }
   const handleDrop = (dropIndex) => { swap(dragRef.current, dropIndex); endDrag() }

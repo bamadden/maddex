@@ -88,3 +88,36 @@ test('new users land on the dashboard, which opens on the Overview', () => {
   assert.match(fs.readFileSync('src/store/useStore.jsx', 'utf8'), /useState\('dashboard'\)/)
   assert.match(fs.readFileSync('src/modules/dashboard/DashboardModule.jsx', 'utf8'), /=== 'custom' \? 'custom' : 'overview'/)
 })
+
+// WS2 re-audit, 26 Nov 2026.
+test('a visit record in the old format is the previous visit; a clock set back starts a new visit', () => {
+  const storage = mem()
+  storage.setItem('maddex_last_visit', JSON.stringify({ at: 1000, asx200: 8000 }))          // pre-26-Nov format, seconds ago
+  const prev = beginVisit({ storage, now: 1000 + 60_000 })
+  assert.equal(prev?.asx200, 8000, 'not "first visit"')
+  storage.setItem('maddex_last_visit', JSON.stringify({ at: 5_000_000, lastSeen: 5_000_000, prev: { at: 1 } }))
+  const back = beginVisit({ storage, now: 4_000_000 })                                         // clock earlier than lastSeen
+  assert.equal(back.at, 5_000_000, 'a new visit, comparing against the record')
+})
+
+test('re-audit fixes are in place: visible-only arrange, visible-tab visits, the visit outlives a hidden panel, intents', () => {
+  const ov = fs.readFileSync('src/modules/dashboard/OverviewSurface.jsx', 'utf8')
+  assert.match(ov, /const vis = o\.filter\(\(x\) => !hidden\.includes\(x\)\)/)
+  assert.match(ov, /document\.visibilityState === 'visible'\) recordVisit\(\{\}\)/)
+  assert.match(ov, /const visit = useVisit\(visitFigures\)/)
+  const hook = fs.readFileSync('src/hooks/useModuleIntent.js', 'utf8')
+  assert.match(hook, /intent && field in intent \? intent\[field\]/)
+  assert.match(hook, /setTimeout\(\(\) => takeModuleIntent\(module\), 0\)/)
+  assert.match(hook, /persistRef\.current\?\.\(value\)/)
+  const app = fs.readFileSync('src/App.jsx', 'utf8')
+  const apply = app.slice(app.indexOf('const applyViewState'), app.indexOf('const [restorePrompt'))
+  assert.ok(apply.indexOf('setLayout(state.layout)') < apply.indexOf('setActiveModule(state.activeModule)'), 'layout before module')
+  assert.match(apply, /setTimeout\(\(\) => sendModuleIntent\(state\.activeModule, state\.intent\), 0\)/)
+  assert.match(app, /splitModuleId,\n    splitRatio,\n  \}\)/)
+  assert.match(app, /if \(restorePrompt\) return undefined/)
+  assert.match(fs.readFileSync('src/modules/company/CompanyProfileModule.jsx', 'utf8'), /recordIntentValue\('company', 'id', id\)/)
+  const bar = fs.readFileSync('src/components/layout/CommandBar.jsx', 'utf8')
+  assert.match(bar, /x\.name\.toLowerCase\(\) === nl\.name\.toLowerCase\(\)\)/, 'delete: exact name only')
+  assert.match(bar, /if \(nl\?\.kind !== 'saveview'\) pendingDropRef\.current = null/)
+  assert.match(bar, /names\.includes\(whole\.slice\(0, at\)\.toLowerCase\(\)\)/, 'rename: split at an existing name')
+})

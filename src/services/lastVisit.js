@@ -23,7 +23,11 @@ const write = (s, k, v) => { try { s?.setItem(k, JSON.stringify(v)) } catch { /*
 // returns the same previous visit.
 export function beginVisit({ storage = globalThis.localStorage, now = Date.now() } = {}) {
   const cur = read(storage, KEY)
-  if (cur && now - (cur.lastSeen ?? cur.at ?? 0) < VISIT_GAP_MS) {
+  const seen = cur?.lastSeen ?? cur?.at ?? 0
+  // Same visit: seen within the gap, in a record of this format, and not in
+  // the future (a clock set back would otherwise keep it open). A record from
+  // before 26 Nov (no lastSeen) is the previous visit itself.
+  if (cur && 'lastSeen' in cur && now >= seen && now - seen < VISIT_GAP_MS) {
     write(storage, KEY, { ...cur, lastSeen: now })
     return cur.prev ?? null
   }
