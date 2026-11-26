@@ -19,6 +19,7 @@ import { formatCryptoPrice } from '../../utils/cryptoSource'
 import DataBadge from '../../components/ui/DataBadge'
 import PriceChange from '../../components/ui/PriceChange'
 import ScoreNote from '../../components/ui/ScoreNote'
+import { detectAssetType } from '../../utils/assetUtils'
 import { computePortfolioSnapshot, holdingRows, byMove } from './portfolioSnapshot'
 import { queryHealth, healthSummary, SCREEN_FEEDS } from '../../services/dataHealth'
 import { useOfficialCheck } from '../../hooks/useOfficialCheck'
@@ -162,6 +163,7 @@ function RbaMacro({ goTo, arrange }) {
         <span className="font-mono tracking-widest text-terminal-text-dim" style={{ fontSize: 11 }}>REGIME</span>
         <span className="font-mono font-bold tracking-widest" style={{ fontSize: 12, color: regime.colour }}>{regime.regime}</span>
       </div>
+      <ScoreNote method="regime" className="mt-1" />
       <div className="mt-1">
         {row('RBA', regime.inputs?.rba ?? '—')}
         {row('CPI', `${au.cpi}% y/y`, `${au.cpiPeriod}, ABS ${formatDate(au.cpiLastRelease)}`)}
@@ -195,7 +197,7 @@ function Holdings({ h, goTo, arrange }) {
       {!h.holdings.length ? <Empty action="ADD HOLDINGS" onAction={() => goTo('portfolio')}>No holdings yet. Add what you own to see value, P&amp;L and rate exposure here.</Empty> : (
         <>
           <div className="grid grid-cols-3 gap-3 mb-2">
-            <Stat label="VALUE" value={fmtAud(h.stats?.value, 0)} />
+            <Stat label="VALUE" value={fmtAud(h.stats?.value, 0)} sub={h.stats && h.stats.priced < h.holdings.length ? <span className="font-mono text-terminal-gold" style={{ fontSize: 11 }} data-partial-value>{h.stats.priced} of {h.holdings.length} priced</span> : null} />
             <Stat label="TODAY" value={h.stats?.dayPnl != null ? fmtAud(h.stats.dayPnl, 0) : '—'} sub={<PriceChange pct={h.stats?.dayPct ?? null} size="text-[11px]" />} />
             <Stat label="TOTAL P&L" value={h.stats ? fmtAud(h.stats.pnl, 0) : '—'} sub={<PriceChange pct={h.stats?.pnlPct ?? null} size="text-[11px]" />} />
           </div>
@@ -227,7 +229,10 @@ function Watchlist({ goTo, arrange }) {
   const syms = (watchlist ?? []).map((w) => w.symbol ?? w)
   // Quotes for every equity on the list, so the movers are chosen from all
   // of it; the panel shows the 14 largest moves and says how many more.
-  const all = syms.filter((s) => /\.AX$/.test(s) || /^[A-Z]{1,5}$/.test(s))
+  // Equities only, classified as the Watchlist module does: BTC and ETH are
+  // stored bare and matched /^[A-Z]{1,5}$/, so they were sent to the equity
+  // feed as if US stocks (WS2 audit, 26 Nov 2026).
+  const all = syms.filter((s) => { const t = detectAssetType(s); return t === 'asx' || t === 'us' })
   const { data, dataUpdatedAt } = useQuery({ queryKey: ['dashWatchlist', all], queryFn: () => fetchEquityQuotes(all), enabled: all.length > 0, staleTime: 60_000, retry: 1 })
   const ranked = byMove(all, (s) => data?.data?.[s]?.pct ?? null)
   const equities = ranked.slice(0, 14)
@@ -263,11 +268,13 @@ function Watchlist({ goTo, arrange }) {
 }
 
 // ── Since your last visit ───────────────────────────────────────────────────
-function SinceLastVisit({ asx200, portfolioValue, arrange }) {
+function SinceLastVisit({ asx200, asx200Cls, portfolioValue, portfolioKey, arrange }) {
   const [prev] = useState(() => beginVisit())
   const [openedAt] = useState(() => Date.now())
-  useEffect(() => { recordVisit({ asx200, portfolioValue }) }, [asx200, portfolioValue])
-  const items = useMemo(() => sinceLastVisit(prev, { at: openedAt, asx200, portfolioValue }, { constants: VERIFIED_CONSTANTS, alerts: loadAlertHistory(), changes: DATED_CHANGES }), [prev, openedAt, asx200, portfolioValue])
+  useEffect(() => { recordVisit({ asx200, asx200Cls, portfolioValue, portfolioKey }) }, [asx200, asx200Cls, portfolioValue, portfolioKey])
+  // Still seen while open, so another tab continues this visit.
+  useEffect(() => { const id = setInterval(() => recordVisit({}), 60_000); return () => clearInterval(id) }, [])
+  const items = useMemo(() => sinceLastVisit(prev, { at: openedAt, asx200, asx200Cls, portfolioValue, portfolioKey }, { constants: VERIFIED_CONSTANTS, alerts: loadAlertHistory(), changes: DATED_CHANGES }), [prev, openedAt, asx200, asx200Cls, portfolioValue, portfolioKey])
   return (
     <Panel id="ov-since" arrange={arrange} title="SINCE YOUR LAST VISIT" badge={prev?.at && <span className="font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>{formatDate(prev.at, { weekday: true, year: false })} {sydneyClock(prev.at).text}</span>}>
       {!prev?.at ? <Empty>First visit on this device. Changes from now on will be listed here next time.</Empty>
@@ -277,6 +284,7 @@ function SinceLastVisit({ asx200, portfolioValue, arrange }) {
               <li key={i.text} className="flex gap-2">
                 <span className="font-mono tracking-widest text-terminal-text-dim w-20 flex-shrink-0 uppercase" style={{ fontSize: 11 }}>{i.kind}</span>
                 <span className="text-terminal-text-bright" style={{ color: i.value != null ? (i.value >= 0 ? 'var(--color-up, #3FB06B)' : 'var(--color-down-text, #E06666)') : undefined }}>{i.text}</span>
+                {i.cls && <DataBadge cls={i.cls} source="ASX 200" compact className="flex-shrink-0 self-start" />}
               </li>
             ))}
           </ul>
@@ -426,7 +434,8 @@ export default function OverviewSurface({ arranging = false, onDoneArranging }) 
           rba: <RbaMacro key={id} goTo={setActiveModule} arrange={arrangeFor(id)} />,
           holdings: <Holdings key={id} h={h} goTo={setActiveModule} arrange={arrangeFor(id)} />,
           watch: <Watchlist key={id} goTo={setActiveModule} arrange={arrangeFor(id)} />,
-          since: <SinceLastVisit key={id} asx200={idx?.data?.['^AXJO']?.last ?? null} portfolioValue={h.stats?.value ?? null} arrange={arrangeFor(id)} />,
+          since: <SinceLastVisit key={id} asx200={idx?.data?.['^AXJO']?.last ?? null} asx200Cls={idx ? classOfResult(idx, { demo: USING_MOCK_DATA }) : null}
+            portfolioValue={h.stats?.value ?? null} portfolioKey={h.stats && h.stats.priced === h.holdings.length ? h.holdings.map((x) => `${x.symbol}:${x.shares}`).sort().join(',') : null} arrange={arrangeFor(id)} />,
           brief: <BriefSummary key={id} goTo={setActiveModule} arrange={arrangeFor(id)} />,
           coming: <ComingUp key={id} goTo={setActiveModule} arrange={arrangeFor(id)} />,
         })[id])}

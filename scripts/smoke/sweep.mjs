@@ -188,6 +188,9 @@ async function sweepModules(page, log) {
     const before = log.errors.length
     await runCommand(page, name)
     await wait(2500)
+    // A module whose badges come with its data (News waits for its feeds) gets
+    // up to 8 s more before "no data badge" is judged.
+    await page.waitForFunction((n, empty) => (document.querySelector('main') ?? document.body).querySelector('[data-class]') || (empty && new RegExp(empty).test(document.body.innerText)), { timeout: 8000 }, name, NO_DATA_SCREENS[name]?.source ?? null).catch(() => {})
     const s = await page.evaluate(() => {
       const main = document.querySelector('main') ?? document.body
       return {
