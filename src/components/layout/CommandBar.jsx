@@ -283,6 +283,8 @@ function parseNaturalLanguage(raw) {
   // "views" lists them; "view NAME" / "open view NAME" opens one (WS2 audit:
   // both fell through to a ticker lookup and to MaddenAI).
   if (/^(?:saved )?views$/i.test(t)) return { kind: 'listviews', say: 'List the views saved on this device' }
+  const dv = t.match(/^(?:delete|remove) (?:the )?view (.{1,40})$/i)
+  if (dv) return { kind: 'deleteview', name: dv[1].trim(), say: `Delete the saved view "${dv[1].trim()}" from this device` }
   const ov = t.match(/^(?:open |load )?view (.{1,40})$/i)
   if (ov) return { kind: 'openview', name: ov[1].trim(), say: `Open the saved view "${ov[1].trim()}"` }
 
@@ -1634,6 +1636,13 @@ export default function CommandBar({ early = null } = {}) {
         case 'listviews': {
           const names = viewStateService.getSavedViews().map((v) => v.name)
           flash(names.length ? `Saved views: ${names.slice(0, 6).join(' · ')}${names.length > 6 ? ` (+${names.length - 6})` : ''} — type "view NAME"` : 'No saved views yet. Type "save view NAME" to keep this one.', 'text-terminal-green', 6000)
+          return
+        }
+        case 'deleteview': {
+          const v = viewStateService.findByName(nl.name)
+          if (!v) { flash(`No single saved view matches "${nl.name}". Type "views" to list them.`, 'text-terminal-gold', 4000); return }
+          viewStateService.deleteView(v.id)
+          flash(`Deleted the saved view "${v.name}" from this device.`, 'text-terminal-green', 3000)
           return
         }
         case 'openview': {

@@ -63,14 +63,24 @@ Bloomberg, and is not used here.
 
 ## Where Maddex is behind
 
-- Keyboard depth. The command bar has modules, settings, assets, calculators
-  and commands, but no function codes per security (as `AAPL` then `G` in
-  Koyfin) and no glossary.
-- Saved layouts. Saved views capture the module and the AI panel but not each
-  module's own state. They are reachable only from the workspace menu.
-- Search breadth. Search does not reach calendar events, Relationships nodes
-  or saved views.
-- Live Australian prices. None until a licensed provider is connected
+Updated 26 Nov 2026 (WS2 re-audit, `docs/audit/ws2-2026-11-26.md`).
+
+- **Keyboard depth.** The command bar has modules, settings, assets,
+  calculators, commands and a glossary. It has no function codes per
+  security (as `AAPL` then `G` in Koyfin); that is a later step.
+- **Saved layouts: mostly closed.**
+  - `save view NAME`, `view NAME`, `views` and `delete view NAME` all work
+    from the command bar.
+  - A view keeps the layout (split or single pane) and the state of the
+    Dashboard, Scanner, Screener, Markets, Macro, News, Watchlist, Bonds,
+    Futures, Calculators, ETFs and company pages.
+  - Still open: a view cannot be renamed, and a view beyond the tenth is
+    dropped without a warning.
+- **Search breadth: mostly closed.** Search reaches the glossary, saved
+  views, economic-calendar events and Relationships nodes. Earnings and
+  dividend dates are not searchable yet, and choosing an event opens
+  Calendar but not at that event.
+- **Live Australian prices.** None until a licensed provider is connected
   (a data licence, in the launch checklist Workstream 8 writes).
 
 ## Priorities for Workstream 2, from this benchmark

@@ -56,7 +56,7 @@ function Panel({ title, badge, action, onAction, className = '', children, id, a
               <button key={dir} onClick={() => arrange.move(arrange.id, dir)} disabled={dir < 0 ? arrange.first : arrange.last}
                 aria-label={`Move ${title} ${word}`}
                 className="font-mono px-2 border border-terminal-gold/40 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg disabled:opacity-30 disabled:pointer-events-none"
-                style={{ fontSize: 11, minWidth: 28, minHeight: 24 }}>{glyph}</button>
+                style={{ fontSize: 11, minWidth: 44, minHeight: 44 }}>{glyph}</button>
             ))}
           </span>
         )}
@@ -131,6 +131,9 @@ function Countdown({ at }) {
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 30_000); return () => clearInterval(id) }, [])
   if (!at) return null
   const ms = at.getTime() - now
+  // Past the decision by more than six hours and the next date not yet in:
+  // say so, rather than "due" for weeks (WS2 audit).
+  if (ms <= -6 * 3600_000) return <span className="text-terminal-text-dim">This decision has been made; the next date appears once it is entered from the RBA&apos;s calendar</span>
   if (ms <= 0) return <span className="text-terminal-gold">Decision due — the terminal updates once the statement is read</span>
   const d = Math.floor(ms / 86400000), h = Math.floor((ms % 86400000) / 3600000), m = Math.floor((ms % 3600000) / 60000)
   return <span className="tabular-nums text-terminal-text-bright" data-countdown>{d > 0 ? `${d} day${d === 1 ? '' : 's'} ` : ''}{h} hr {m} min</span>
@@ -409,7 +412,7 @@ export default function OverviewSurface({ arranging = false, onDoneArranging }) 
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [])
+  }, [setDense])
   const [order, setOrder] = useState(() => readOrder())
   const move = (id, dir) => setOrder((o) => { const next = moveId(o, id, dir); saveOrder(next); return next })
   const reset = () => { clearOrder(); setOrder([...OVERVIEW_PANELS]) }

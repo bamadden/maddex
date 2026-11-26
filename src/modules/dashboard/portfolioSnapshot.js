@@ -52,7 +52,7 @@ export function computePortfolioSnapshot(priceable, rows, usdToAud) {
   return {
     value,
     pnl: value - cost,
-    pnlPct: cost ? ((value - cost) / cost) * 100 : 0,
+    pnlPct: cost ? ((value - cost) / cost) * 100 : null, // no cost base: not 0.00%
     dayPnl: dayBase ? dayPnl : null,
     dayPct: dayBase ? (dayPnl / dayBase) * 100 : null,
     best,

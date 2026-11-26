@@ -106,3 +106,13 @@ test('saved-view dates are Sydney dates, and the Overview keys stand aside for a
   assert.equal(toggled, 1)
   delete globalThis.document
 })
+
+test('"delete view NAME" removes one saved view by name; the cost-less P&L is not 0.00%', async () => {
+  const bar = fs.readFileSync('src/components/layout/CommandBar.jsx', 'utf8')
+  assert.match(bar, /kind: 'deleteview'/)
+  assert.match(bar, /case 'deleteview':[\s\S]{0,300}viewStateService\.deleteView\(v\.id\)/)
+  assert.match(fs.readFileSync('src/modules/dashboard/portfolioSnapshot.js', 'utf8'), /pnlPct: cost \? \(\(value - cost\) \/ cost\) \* 100 : null/)
+  const ov = fs.readFileSync('src/modules/dashboard/OverviewSurface.jsx', 'utf8')
+  assert.match(ov, /minWidth: 44, minHeight: 44/)
+  assert.match(ov, /ms <= -6 \* 3600_000/)
+})
